@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hospital Report Transfer Validator - CRC32</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: #eef3f8;
+    color: #1f2937;
+}
+
+/* HEADER */
+header {
+    background: linear-gradient(135deg, #075985, #0e7490);
+    color: white;
+    padding: 22px;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 28px;
+    margin-bottom: 6px;
+}
+
+header p {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+/* MAIN CONTAINER */
+.container {
+    width: 95%;
+    max-width: 1400px;
+    margin: 25px auto;
+}
+
+/* ================= STATUS ================= */
+
+.status-bar {
+    background: white;
+    padding: 18px 22px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.status {
+    font-weight: bold;
+}
+
+.status-text {
+    margin-left: 8px;
+    color: #d97706;
+    font-weight: bold;
+}
+
+.status-details {
+    color: #475569;
+}
+
+.status-details span {
+    color: #075985;
+    font-weight: bold;
+}
+
+/* STATUS COLORS */
+
+.status-waiting {
+    color: #d97706;
+}
+
+.status-ready {
+    color: #2563eb;
+}
+
+.status-success {
+    color: #16a34a;
+}
+
+.status-error {
+    color: #dc2626;
+}
+
+.status-transfer {
+    color: #7c3aed;
+}
+
+/* MAIN GRID */
+.main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+/* CARD */
+.card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 5px 18px rgba(0,0,0,0.08);
+}
+
+.card h2 {
+    color: #075985;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 12px;
+}
+
+.card h2 span {
+    background: #075985;
+    color: white;
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-size: 14px;
+    margin-right: 8px;
+}
+
+/* UPLOAD BOX */
+.upload-box {
+    border: 2px dashed #94a3b8;
+    padding: 30px 15px;
+    border-radius: 12px;
+    text-align: center;
+    background: #f8fafc;
+    margin-bottom: 18px;
+}
+
+.upload-box input {
+    margin-top: 15px;
+    width: 100%;
+}
+
+/* FILE INFO */
+.file-info {
+    background: #f1f5f9;
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 15px;
+    line-height: 1.8;
+    word-break: break-word;
+}
+
+.label {
+    font-weight: bold;
+    color: #475569;
+}
+
+/* CRC */
+.crc-box {
+    margin-top: 18px;
+    padding: 15px;
+    border-radius: 10px;
+    background: #ecfeff;
+    border: 1px solid #67e8f9;
+}
+
+.crc-value {
+    font-size: 22px;
+    font-weight: bold;
+    color: #0369a1;
+    word-break: break-all;
+    margin-top: 5px;
+}
+
+/* BUTTONS */
+button {
+    border: none;
+    padding: 12px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    margin: 6px 4px 6px 0;
+    transition: 0.2s;
+}
+
+button:hover {
+    transform: translateY(-1px);
+    opacity: 0.9;
+}
+
+.primary {
+    background: #075985;
+    color: white;
+}
+
+.success {
+    background: #16a34a;
+    color: white;
+}
+
+.warning {
+    background: #d97706;
+    color: white;
+}
+
+.danger {
+    background: #dc2626;
+    color: white;
+}
+
+.secondary {
+    background: #64748b;
+    color: white;
+}
+
+button:disabled {
+    background: #cbd5e1;
+    color: #64748b;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ERROR SIMULATION */
+.simulation {
+    margin-top: 20px;
+    background: #fff7ed;
+    border: 1px solid #fdba74;
+    border-radius: 10px;
+    padding: 18px;
+}
+
+.simulation h3 {
+    color: #c2410c;
+    margin-bottom: 10px;
+}
+
+.simulation label {
+    display: block;
+    margin: 10px 0;
+}
+
+.simulation input[type="range"] {
+    width: 100%;
+}
+
+.slider-value {
+    font-weight: bold;
+    color: #c2410c;
+}
+
+/* RESULT */
+.result {
+    margin-top: 20px;
+    padding: 18px;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: bold;
+    display: none;
+}
+
+.valid {
+    display: block;
+    background: #dcfce7;
+    border: 2px solid #22c55e;
+    color: #166534;
+}
+
+.invalid {
+    display: block;
+    background: #fee2e2;
+    border: 2px solid #ef4444;
+    color: #991b1b;
+}
+
+/* TRANSFER ARROW */
+.transfer-arrow {
+    text-align: center;
+    font-size: 32px;
+    color: #0e7490;
+    margin: 15px 0;
+}
+
+/* INSTRUCTIONS */
+.instructions {
+    margin-top: 25px;
+    background: white;
+    padding: 22px;
+    border-radius: 15px;
+    box-shadow: 0 5px 18px rgba(0,0,0,0.08);
+}
+
+.instructions h2 {
+    color: #075985;
+    margin-bottom: 12px;
+}
+
+.instructions ol {
+    padding-left: 25px;
+    line-height: 2;
+}
+
+/* FOOTER */
+footer {
+    text-align: center;
+    padding: 25px;
+    color: #64748b;
+    font-size: 13px;
+}
+
+/* MOBILE */
+@media(max-width: 850px) {
+
+    .main-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .status-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>🏥 Hospital Report Transfer Validator</h1>
+    <p>Secure Hospital Report Transfer using CRC-32 Error Detection</p>
+</header>
+
+<div class="container">
+
+    <!-- ================= STATUS BAR ================= -->
+
+    <div class="status-bar">
+
+        <div class="status">
+
+            <strong>Transfer Status:</strong>
+
+            <span
+                id="transferStatus"
+                class="status-text status-waiting">
+
+                🟡 Waiting for file — CRC-32 not generated
+
+            </span>
+
+        </div>
+
+        <div class="status-details">
+
+            <strong>CRC Algorithm:</strong>
+
+            <span>CRC-32</span>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================= MAIN ================= -->
+
+    <div class="main-grid">
+
+
+        <!-- =================================================
+             SENDER SIDE
+        ================================================== -->
+
+        <div class="card">
+
+            <h2>
+                <span>1</span>
+                Sender Side
+            </h2>
+
+
+            <!-- FILE SELECTION -->
+
+            <div class="upload-box">
+
+                <h3>Select Hospital Report</h3>
+
+                <p style="margin-top:8px;">
+                    PDF, Image, Document or any other file
+                </p>
+
+                <input
+                    type="file"
+                    id="senderFile"
+                    accept="*/*">
+
+            </div>
+
+
+            <!-- SENDER FILE INFORMATION -->
+
+            <div
+                id="senderInfo"
+                class="file-info"
+                style="display:none;">
+
+                <div>
+                    <span class="label">
+                        File Name:
+                    </span>
+
+                    <span id="senderName"></span>
+                </div>
+
+                <div>
+                    <span class="label">
+                        File Size:
+                    </span>
+
+                    <span id="senderSize"></span>
+                </div>
+
+                <div>
+                    <span class="label">
+                        File Type:
+                    </span>
+
+                    <span id="senderType"></span>
+                </div>
+
+            </div>
+
+
+            <!-- REFERENCE CRC -->
+
+            <div class="crc-box">
+
+                <div>
+                    <span class="label">
+                        Reference CRC-32:
+                    </span>
+                </div>
+
+                <div
+                    id="referenceCRC"
+                    class="crc-value">
+
+                    Not generated
+
+                </div>
+
+            </div>
+
+
+            <!-- SENDER BUTTONS -->
+
+            <div style="margin-top:15px;">
+
+                <button
+                    class="primary"
+                    onclick="generateCRC()">
+
+                    🔐 Generate Reference CRC-32
+
+                </button>
+
+                <button
+                    class="success"
+                    onclick="transferFile()">
+
+                    📤 Transfer to Receiver
+
+                </button>
+
+            </div>
+
+
+            <!-- ERROR SIMULATION -->
+
+            <div class="simulation">
+
+                <h3>⚠ Error Simulation</h3>
+
+                <p style="margin-bottom:10px;">
+
+                    Simulate transmission errors before
+                    receiver verification.
+
+                </p>
+
+
+                <label>
+
+                    <input
+                        type="checkbox"
+                        id="simulateError"
+                        onchange="updateSimulation()">
+
+                    Enable Error Simulation
+
+                </label>
+
+
+                <div
+                    id="errorControls"
+                    style="display:none;">
+
+                    <label>
+
+                        Error Percentage:
+
+                        <span
+                            id="errorValue"
+                            class="slider-value">
+
+                            1%
+
+                        </span>
+
+                    </label>
+
+
+                    <input
+                        type="range"
+                        id="errorRate"
+                        min="1"
+                        max="20"
+                        value="1"
+                        oninput="updateErrorValue()">
+
+
+                    <p
+                        style="
+                        font-size:13px;
+                        margin-top:8px;">
+
+                        Selected percentage of bytes
+                        will be changed to simulate
+                        transmission corruption.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             RECEIVER SIDE
+        ================================================== -->
+
+        <div class="card">
+
+            <h2>
+                <span>2</span>
+                Receiver Side
+            </h2>
+
+
+            <!-- RECEIVER AREA -->
+
+            <div class="upload-box">
+
+                <h3>Received Hospital Report</h3>
+
+                <p style="margin-top:8px;">
+
+                    Transferred file will appear here.
+
+                </p>
+
+
+                <div
+                    id="receiverPlaceholder"
+                    style="
+                    margin-top:15px;
+                    color:#64748b;">
+
+                    📥 No file received yet
+
+                </div>
+
+            </div>
+
+
+            <!-- RECEIVER INFORMATION -->
+
+            <div
+                id="receiverInfo"
+                class="file-info"
+                style="display:none;">
+
+                <div>
+
+                    <span class="label">
+                        Received File:
+                    </span>
+
+                    <span id="receiverName"></span>
+
+                </div>
+
+
+                <div>
+
+                    <span class="label">
+                        File Size:
+                    </span>
+
+                    <span id="receiverSize"></span>
+
+                </div>
+
+
+                <div>
+
+                    <span class="label">
+                        File Type:
+                    </span>
+
+                    <span id="receiverType"></span>
+
+                </div>
+
+            </div>
+
+
+            <!-- CURRENT CRC -->
+
+            <div class="crc-box">
+
+                <div>
+
+                    <span class="label">
+                        Current CRC-32:
+                    </span>
+
+                </div>
+
+                <div
+                    id="currentCRC"
+                    class="crc-value">
+
+                    Not calculated
+
+                </div>
+
+            </div>
+
+
+            <!-- RECEIVER BUTTONS -->
+
+            <div style="margin-top:15px;">
+
+                <button
+                    class="primary"
+                    onclick="calculateCurrentCRC()">
+
+                    🔍 Calculate Current CRC-32
+
+                </button>
+
+
+                <button
+                    class="warning"
+                    onclick="verifyFile()">
+
+                    ✓ Verify Report
+
+                </button>
+
+
+                <button
+                    id="saveButton"
+                    class="success"
+                    onclick="saveFile()"
+                    disabled>
+
+                    💾 Save File
+
+                </button>
+
+            </div>
+
+
+            <!-- VERIFICATION RESULT -->
+
+            <div
+                id="verificationResult"
+                class="result">
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- TRANSFER ARROW -->
+
+    <div class="transfer-arrow">
+
+        SENDER
+        &nbsp; ───────────────► &nbsp;
+        RECEIVER
+
+    </div>
+
+
+    <!-- INSTRUCTIONS -->
+
+    <div class="instructions">
+
+        <h2>How the System Works</h2>
+
+        <ol>
+
+            <li>
+                Select a hospital report, PDF, image
+                or other file on the Sender Side.
+            </li>
+
+            <li>
+                Generate the Reference CRC-32.
+            </li>
+
+            <li>
+                Transfer the file to the Receiver.
+            </li>
+
+            <li>
+                Enable Error Simulation if you want
+                to demonstrate transmission corruption.
+            </li>
+
+            <li>
+                Receiver calculates the Current CRC-32.
+            </li>
+
+            <li>
+                Click Verify Report.
+            </li>
+
+            <li>
+                If both CRC values match,
+                the report is VALID.
+            </li>
+
+            <li>
+                If CRC values are different,
+                ERROR DETECTED is displayed.
+            </li>
+
+            <li>
+                A successfully verified file can
+                be saved using Save File.
+            </li>
+
+        </ol>
+
+    </div>
+
+</div>
+
+
+<footer>
+
+    Hospital Report Transfer Validator
+    |
+    CRC-32 Error Detection Project
+
+</footer>
+
+
+<!-- =========================================================
+     JAVASCRIPT
+     CRC calculation is handled by Python Flask
+========================================================= -->
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>
